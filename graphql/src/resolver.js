@@ -1,4 +1,4 @@
-const Human = require('./human');
+const simpleHuman = require('./human/simple');
 
 // The root provides a resolver function for each API endpoint
 var root = {
@@ -6,14 +6,17 @@ var root = {
     return 'Hello world!';
   },
 
-  ip: (args, request) => {
-    return request.ip;
+  ip: (args, context) => {
+    return context.request.ip;
   },
 
-  human(args, context) {
-    const human = new Human(args.id)
-    return human.load()
+  simpleHuman(args, context) {
+    return simpleHuman.Storage.get([args.id]).then(humans => humans[0]);
   },
+
+  dataloaderHuman(args, context) {
+    return context.humanLoader.load(args.id);
+  }
 };
 
 module.exports = root;

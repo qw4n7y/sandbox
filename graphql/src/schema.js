@@ -5,7 +5,8 @@ var schema = buildSchema(`
   type Query {
     hello: String
     ip: String
-    human(id: Int!): Human
+    simpleHuman(id: Int!): Human
+    dataloaderHuman(id: Int!): Human
   }
   type Human {
     id: String
