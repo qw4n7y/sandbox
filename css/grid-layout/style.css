@@ -1,0 +1,19 @@
+#container {
+  border: 3px solid black;
+  width: 800px;
+  position: absolute;
+  top: 50px;
+  left: 50%;
+  margin-left: -400px;
+}
+.item {
+  border: 1px solid black;
+  background: #eee;
+  margin: -1px;
+}
+.item_wide {
+  width: 200px;
+}
+.item_high {
+  height: 200px;
+}

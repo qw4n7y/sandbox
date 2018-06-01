@@ -1,0 +1,60 @@
+<html>
+  <head>
+    <link rel="stylesheet" href="./style.css" type="text/css" />
+    <style>
+      #container {
+        height: calc(100% - 100px);
+        
+        display: grid;
+        
+        grid-template-columns: [col1] 100px [col1-end col2] auto [col2-end col3] 100px [col3-end];
+        grid-template-rows: [row1] 100px [row2] 25% [row3] auto [row4] 100px [row4-end];
+        grid-template-areas:
+          "header header header"
+          "left-sidebar main right-sidebar"
+          "left-sidebar main right-sidebar"
+          "footer footer footer";
+        
+        grid-column-gap: 10px;
+        grid-row-gap: 10px;
+
+        /* justify-items: start | end | center | stretch; */
+        justify-items: center;
+
+        /* align-items: start | end | center | stretch; */
+        align-items: center;
+      }
+
+      #item-2 {
+        grid-area: main;
+        justify-self: stretch;
+        align-self: stretch;
+      }
+
+      #item-6 {
+        grid-column: 1 / 2;
+        grid-row: -2 / -3;
+        justify-self: stretch;
+        align-self: stretch;
+      }
+
+      #item-7 {
+        grid-column: col2 / col3-end;
+        grid-row: row4 / row4-end;
+        justify-self: stretch;
+        align-self: stretch;
+      }
+    </style>
+  </head>
+  <body>
+    <div id='container'>
+        <div class='item item_high' id='item-1'>1</div>
+        <div class='item' id='item-2'>2</div>
+        <div class='item' id='item-3'>3</div>
+        <div class='item item_high' id='item-4'>4</div>
+        <div class='item' id='item-5'>5</div>
+        <div class='item' id='item-6'>6</div>
+        <div class='item' id='item-7'>7</div>
+    </div>
+  </body>
+</html>
