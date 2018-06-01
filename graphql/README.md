@@ -2,11 +2,12 @@ Since we configured graphqlHTTP with graphiql: true, you can use the GraphiQL to
 
 ### Queries
 
-query getMyIp {
+`query getMyIp {
   ip
-}
+}`
 
 // N + 1 issue
+
 `query getMeTheSimpleHumanAndShowThereIsNPlusOneProblem{
   simpleHuman(id: 1) {
     id,
