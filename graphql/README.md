@@ -7,7 +7,7 @@ query getMyIp {
 }
 
 // N + 1 issue
-query getMeTheSimpleHumanAndShowThereIsNPlusOneProblem{
+`query getMeTheSimpleHumanAndShowThereIsNPlusOneProblem{
   simpleHuman(id: 1) {
     id,
     friends {
@@ -17,11 +17,11 @@ query getMeTheSimpleHumanAndShowThereIsNPlusOneProblem{
       }
     }
   }
-}
+}`
 
 // N + 1 problem solved with dataloader
 
-query getMeTheDataloaderHumanAndShowThereIsNoNPlusOneProblem{
+`query getMeTheDataloaderHumanAndShowThereIsNoNPlusOneProblem{
   dataloaderHuman(id: 1) {
     id,
     friends {
@@ -34,4 +34,4 @@ query getMeTheDataloaderHumanAndShowThereIsNoNPlusOneProblem{
       }
     }
   }
-}
+}`
