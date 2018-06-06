@@ -1,0 +1,32 @@
+pipeline {
+  agent any
+  options {
+    timestamps()
+  }
+  stages {
+    stage('Stage A') {
+      options { 
+        timeout(time: 10, unit: 'MINUTES')
+      }
+      steps {
+        sh 'echo "Stage A"'
+      }
+    }
+    stage('Analyze') {
+      steps {
+        junit 'docker/vault/tests/server/junit.xml'
+        cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'docker/vault/tests/server/coverage/cobertura-coverage.xml', conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', zoomCoverageChart: false
+        archiveArtifacts artifacts: 'docker/vault/tests/**', fingerprint: true, onlyIfSuccessful: true
+      }
+    }
+  }
+  post {
+    always {
+      script {
+        def COLOR_MAP = ['SUCCESS': 'good', 'FAILURE': 'danger', 'UNSTABLE': 'danger', 'ABORTED': 'danger']
+        def MESSAGE = "${env.BRANCH_NAME}: <${env.BUILD_URL}|Build ${currentBuild.displayName}>: ${currentBuild.currentResult}"
+        slackSend channel: '#some-channel', color: COLOR_MAP[currentBuild.currentResult], message: MESSAGE, teamDomain: 'someteamdomain', token: 'sometoken'
+      }
+    }
+  }
+}
