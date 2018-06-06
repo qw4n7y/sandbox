@@ -3,13 +3,24 @@ syntax = "proto3";
 package hello;
 
 service Hello {
-    rpc greet (HelloRequest) returns (HelloReply) {}
+  rpc greet (HelloRequest) returns (HelloReply) {}
+  rpc greet10Times (HelloRequest) returns (stream HelloReply) {}
 }
 
 message HelloRequest {
-    string name = 1;
+  enum Language {
+    RU = 0;
+    EN = 1;
+  }
+
+  string name = 1;
+  Language lang = 2; // For enums, the default value is the first defined enum value, which must be 0.
+
+  map<string, string> meta = 3;
+
+  repeated string titles = 4;
 }
 
 message HelloReply {
-    string message = 1;
+  repeated string messages = 1;
 }

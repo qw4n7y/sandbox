@@ -15,3 +15,5 @@
 We'll use existing `protos` folder as output folder
 
 `protoc --js_out=import_style=commonjs,binary:. protos/*.proto`
+
+No `fromObject`. LOL. https://github.com/google/protobuf/issues/1591
