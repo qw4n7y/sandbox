@@ -1,0 +1,36 @@
+<html>
+  <body>
+    <h1>Web workers: Counter</h1>
+
+    <p id='output'></p>
+    <button onClick='startWorker()'>Start</button>
+    <button onClick='stopWorker()'>Stop</button>
+
+    <script>
+      var worker
+
+      function output(message) {
+        document.getElementById('output').innerHTML = message;
+      }
+
+      function startWorker() {
+        if (typeof(Worker) === 'undefined') {
+          output('No support');
+          return;
+        }
+
+        if (typeof(worker) === 'undefined') {
+          worker = new Worker('worker.js');
+          worker.onmessage = function(event) {
+            output(event.data);
+          }
+        }
+      }
+
+      function stopWorker() {
+        worker.terminate();
+        worker = undefined;
+      }
+    </script>
+  </body>
+</html>
