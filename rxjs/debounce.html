@@ -1,0 +1,55 @@
+<html>
+  <body>
+    <p>rxjs.umd.js - 320K</p>
+    <p>rxjs.umd.min.js - 132K</p>
+
+    <p>Here we have a search input sandbox. Server will reply in 100 ms or 1 sec.</p>
+
+    <p>A) flatMap</p>
+    <input id="inputA" type="text" style="width: 100%; font-size: 14px;"></input>
+    
+    <p>B) switchMap</p>
+    <input id="inputB" type="text" style="width: 100%; font-size: 14px;"></input>
+    
+    <div id="output"></div>
+    
+    <script src='./node_modules/rxjs/bundles/rxjs.umd.js'></script>
+    <script>
+      var outputEl = document.getElementById("output");
+      function output(message) {
+        console.log(message);
+        var updatedHtml = `${message}<br/>${outputEl.innerHTML}`;
+        outputEl.innerHTML = updatedHtml;
+      }
+      
+      var timeouts = [100, 1000];
+      var timeoutIndex = 0;
+      function getResponseFromDummyServer(message, callback) {
+        timeoutIndex = (timeoutIndex + 1) % timeouts.length;
+        var timeout = timeouts[timeoutIndex];
+        var promise = new Promise((resolve, _) => {
+          setTimeout(() => resolve(message), timeout);
+        });
+        return rxjs.from(promise);
+      }
+      
+      // First approach: flatMap
+      rxjs.
+        fromEvent(document.getElementById("inputA"), "keyup").
+        pipe(
+          rxjs.operators.map(event => event.target.value),
+          rxjs.operators.flatMap(message => getResponseFromDummyServer(message))
+        ).
+        subscribe(output);
+
+      // Second approach: switchMap
+      rxjs.
+        fromEvent(document.getElementById("inputB"), "keyup").
+        pipe(
+          rxjs.operators.map(event => event.target.value),
+          rxjs.operators.switchMap(message => getResponseFromDummyServer(message))
+        ).
+        subscribe(output);
+    </script>
+  </body>
+</html>
