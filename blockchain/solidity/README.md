@@ -1,0 +1,1 @@
+* http://solidity.readthedocs.io/
