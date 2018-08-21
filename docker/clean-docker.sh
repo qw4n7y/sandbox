@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# NOTE:: use xargs -I F docker rm -v "F" on MacOS
+
 # ref: https://lebkowski.name/docker-volumes/
 
 echo "Docker maintenance: Cleaning space"
