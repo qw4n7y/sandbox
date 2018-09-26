@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+
+  nodeA:
+    image: prom/node-exporter:latest
+    command: --log.format="logger:stderr" --web.listen-address=":9100"
+    ports:
+      - 9101:9100
+
+  nodeB:
+    image: prom/node-exporter:latest
+    command: --log.format="logger:stderr" --web.listen-address=":9100"
+    ports:
+      - 9102:9100
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./volume:/prometheus
+    ports:
+      - 9090:9090
