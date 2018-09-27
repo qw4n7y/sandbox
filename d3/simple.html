@@ -2,7 +2,7 @@
   <head>
     <script src="https://d3js.org/d3.v5.min.js"></script>
     <script>
-      function genData(minX, maxX) {
+      function _genData(minX, maxX) {
         var n = Math.round(1 + Math.random() * 9)
         var section = (maxX - minX) / n
 
@@ -15,6 +15,16 @@
         
         return points
       }
+      var data = {}
+      function genData(minX, maxX) {
+        return _genData(minX, maxX)
+
+        // memoized
+        if (!data[minX]) {
+          data[minX] = _genData(minX, maxX)
+        }
+        return data[minX]
+      }
     </script>
     <style>
       svg rect.buy {
@@ -23,38 +33,165 @@
       svg rect.sell {
         width: 20px;
       }
+      svg .axis line {
+        stroke: #777;
+        stroke-dasharray: 2, 2;
+      }
+
+      svg .zoom {
+        cursor: move;
+      }
+
+      #tip {
+        line-height: 1;
+        font-weight: bold;
+        padding: 12px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #fff;
+        border-radius: 2px;
+        position: absolute;
+        width: 100px;
+      }
+
+      /* Creates a small triangle extender for the tooltip */
+      #tip:after {
+        width: 100%;
+        color: rgba(0, 0, 0, 0.8);
+        content: "\25BC";
+        position: absolute;
+        text-align: center;
+        top: 100%;
+        left: 0;
+      }
     </style>
   </head>
   <body>
-    <button onClick="updateChart()">Update</button>
-    <div id="chart" style="width: 100%; height: 250px;">
-      <svg width="100%" height="100%"></svg>
+    <button onClick="toggleUpdate()">Update</button>
+    <div id="chart" style="width: 100%; height: 400px;">
+      <svg width="100%" height="100%">
+        <linearGradient id="gradient">
+          <stop offset="0%" stop-color="black"/>
+          <stop offset="100%" stop-color="green"/>
+        </linearGradient>
+      </svg>
+      <div id="tip"></div>
     </div>
 
     <script>
-      d3.select("#chart").style("border", "1px solid black")
-      
-      // HTML container element
-      var boundingRect = d3.select("#chart").node().getBoundingClientRect()
-      
-      // X / Y Scale
-      var padding = 20
-      var xScale = d3.scaleLinear().range([padding, boundingRect.width - padding])
-      var yScale = d3.scaleLinear().range([boundingRect.height - padding, 0])
-      
-      // The chart
-      var chart = d3.select("svg")
+      d3.select("#chart svg").style("border", "1px solid black")
 
-      // Axes
-      chart.append("g")
-        .attr("class", "x axis")
-        .attr("transform", `translate(0, ${boundingRect.height - padding})`)
-      chart.append("g")
-        .attr("class", "y axis")
-        .attr("transform", `translate(${padding}, 0)`)
+      // CONFIG
+      var margin = { top: 20, right: 40, bottom: 30, left: 40 }
+      
+      // Shared
+      var chart
+      var zoom
+      var xScale
+      var yScale
+      var xAxis
+      var yAxis
+      var y2Axis
+      var circle
+      var globalTransform = {k: 1, x: 0, y: 0}
+
+      function updateChart() {
+        // HTML container element
+        var boundingRect = d3.select("#chart").node().getBoundingClientRect()
+        width = boundingRect.width - margin.left - margin.right
+        height = boundingRect.height - margin.top - margin.bottom
+        
+        // X / Y Scale
+        xScale = d3.scaleLinear().range([0, width])
+        yScale = d3.scaleLinear().range([height, 0])
+
+        xAxis = d3.axisBottom(xScale)
+        yAxis = d3.axisLeft(yScale)
+        y2Axis = d3.axisRight(yScale)
+
+        chart = d3.select("#chart svg")
+
+        chart.select("svg.zoom").remove()
+        var wrapper = chart.append("svg").attr('class', 'zoom')
+          .attr("height", height)
+          .attr("width", width)
+          .attr("x", margin.left)
+          .attr("y", margin.top)
+        var content = wrapper.append('g').attr('class', 'content')
+
+        wrapper.select('rect.mouseMovementRegistrationElement').remove()
+        wrapper.append('rect').attr('class', 'mouseMovementRegistrationElement')
+          .attr("height", height)
+          .attr("width", width)
+          .attr("fill", 'rgba(0,0,0,0)')
+          .attr("pointer-events", "all")
+          .on("mousemove", onMouseMove)
+        
+        wrapper.select('circle').remove()
+        circle = wrapper.append('circle')
+          .attr('cx', 100)
+          .attr('cy', 200)
+          .attr('r', 5)
+          .attr('fill', 'red')
+
+        wrapper.select('line.intersection-line-vertical').remove()
+        wrapper.append('line')
+          .attr('class', 'intersection-line-vertical')
+          .attr('x1', 10)
+          .attr('y1', 0)
+          .attr('x2', 10)
+          .attr('y2', '100%')
+          .attr('stroke', 'red')
+          .attr('stroke-width', 2)
+
+        wrapper.select('line.intersection-line-horizontal').remove()
+        wrapper.append('line')
+          .attr('class', 'intersection-line-horizontal')
+          .attr('x1', 0)
+          .attr('y1', 10)
+          .attr('x2', '100%')
+          .attr('y2', 10)
+          .attr('stroke', 'red')
+          .attr('stroke-width', 2)
+
+        // Simple Zoom
+        // zoom = d3.zoom()
+        //   .scaleExtent([1, 8])
+        //   .translateExtent([[0, 0], [width, height]])
+        //   .extent([[0, 0], [width, height]])
+        //   .on("zoom", onZoom)
+        // chart.select("svg.zoom").call(zoom)
+
+        // Zoom V2
+        zoom = d3.zoom()
+          .scaleExtent([1, 8])
+          .on("zoom", onZoom)
+
+        // Axes
+        chart.select("g.axes").remove()
+        axes = chart.append("g").attr('class', 'axes')
+          .attr("transform", `translate(${margin.left}, ${margin.top})`)
+          .attr("height", height)
+          .attr("width", width)
+
+        axes.select("g.axis.x").remove()
+        axes.select("g.axis.y").remove()
+        axes.select("g.axis.y2").remove()
+        
+        axes
+          .append("g").attr("class", "x axis")
+          .attr("transform", `translate(0, ${height})`)
+        axes
+          .append("g").attr("class", "y axis")
+          .attr("transform", `translate(0, 0)`)
+        axes
+          .append("g").attr("class", "y2 axis")
+          .attr("transform", `translate(${width}, 0)`)
+      }
 
       function updateBars(data, cssClass, maxY) {
-        var bars = chart
+        var content = chart.select(".content")
+
+        var bars = content
           .selectAll(`rect.${cssClass}`)
           .data(data)
 
@@ -87,14 +224,16 @@
       }
 
       function updateLine(data, cssClass, maxY) {
-        var lineFn = d3.line()
-                      .x(d => xScale(d[0]))
-                      .y(d => yScale(maxY - d[1]))
-                      .curve(d3.curveStepBefore) // d3.curveLinear
+        var content = chart.select(".content")
 
-        var path = chart.select(`path.${cssClass}`)
+        var lineFn = d3.line()
+          .x(d => xScale(d[0]))
+          .y(d => yScale(maxY - d[1]))
+          .curve(d3.curveLinear) // d3.curveStepBefore
+
+        var path = content.select(`path.${cssClass}`)
         if (path.empty()) {
-          path = chart.append('path').attr('class', cssClass)
+          path = content.append('path').attr('class', cssClass)
         }
         path
           .attr("d", lineFn(data))
@@ -104,24 +243,43 @@
       }
 
       function updateArea(data, cssClass, maxY) {
-        var t = d3.transition().duration(500)
+        var content = chart.select(".content")
+
+        var t = d3.transition().duration(0)
         
         var areaFn = d3.area()
-                      .x(d => xScale(d[0]))
-                      .y0(yScale(0))
-                      .y1(d => yScale(maxY - d[1]))
+          .x(d => xScale(d[0]))
+          .y0(yScale(0))
+          .y1(d => yScale(maxY - d[1]))
 
-        var path = chart.select(`path.${cssClass}`)
+        var path = content.select(`path.${cssClass}`)
         if (path.empty()) {
-          path = chart.append('path').attr('class', cssClass)
+          path = content.append('path').attr('class', cssClass)
         }
         path
           .transition(t)
           .attr("d", areaFn(data))
-          .attr("fill", "lightsteelblue")
+          .attr("fill", "url(#gradient)")
       }
 
-      function updateChart() {
+      function updateAxes() {
+        var axes = chart.select("g.axes")
+
+        axes.select(".x").call(function customXAxis(g) {
+          g.call(xAxis)
+          g.selectAll(".tick line").attr("y2", `calc(-100% + ${margin.top + margin.bottom}px)`)
+        })
+        axes.select(".y").call(function customXAxis(g) {
+          g.call(yAxis)
+          g.selectAll(".tick line").attr("x2", `calc(100% - ${margin.left + margin.right}px)`)
+        })
+        axes.select(".y2").call(function customXAxis(g) {
+          g.call(y2Axis)
+          g.selectAll(".tick line").remove()
+        })
+      }
+
+      function updateData() {
         var buyData = genData(0, 50)
         var sellData = genData(55, 100)
 
@@ -129,33 +287,145 @@
         var maxX = d3.max(sellData, d => d[0])
         var maxY = d3.max([d3.max(buyData, d => d[1]), d3.max(sellData, d => d[1])])
 
-        // console.log(`X [${minX}, ${maxX}] [0, ${boundingRect.width}]`)
-        // console.log(`Y [0, ${maxY}] [0, ${boundingRect.height}]`)
+        var spreadX = (buyData[buyData.length - 1][0] + sellData[0][0]) / 2
+        console.log("spreadX", spreadX)
+
         xScale = xScale.domain([minX, maxX])
         yScale = yScale.domain([0, maxY])
 
+        // Zoom V2
+        zoom = zoom
+          .translateExtent([[xScale(spreadX), yScale(0)], [xScale(spreadX), yScale(0)]])
+          .extent([[xScale(spreadX), yScale(0)], [xScale(spreadX), yScale(0)]])
+        chart.select("svg.zoom").call(zoom)
+
         // AXES
-        
-        var xAxis = d3.axisBottom(xScale)
-        var yAxis = d3.axisLeft(yScale)
-        chart.select(".x").call(xAxis)
-        chart.select(".y").call(yAxis)
+        updateAxes()
 
         // BARS
-        updateBars(buyData, "buy", maxY)
-        updateBars(sellData, "sell", maxY)
+        // updateBars(buyData, "buy", maxY)
+        // updateBars(sellData, "sell", maxY)
 
-        // LINE
-        updateLine(buyData, "buy", maxY)
-        updateLine(sellData, "sell", maxY)
+        // // LINE
+        updateLine(buyData, "buy-path", maxY)
+        updateLine(sellData, "sell-path", maxY)
 
-        // AREA
+        // // AREA
         updateArea(buyData, "buy-area", maxY)
         updateArea(sellData, "sell-area", maxY)
       }
 
+      function onZoom() {
+        var transform = d3.event.transform
+        globalTransform = transform
+        
+        var content = chart.select('.content')
+        content.attr("transform", transform)
+
+        var axes = chart.select("g.axes")
+        axes.select(".x").call(xAxis.scale(transform.rescaleX(xScale)))
+        axes.select(".y").call(yAxis.scale(transform.rescaleY(yScale)))
+        axes.select(".y2").call(y2Axis.scale(transform.rescaleY(yScale)))
+        updateAxes()
+      }
+
+      function onMouseMove() {
+        var x = d3.mouse(this)[0]
+
+        var verticalLine = chart.select('line.intersection-line-vertical')
+        var horizontalLine = chart.select('line.intersection-line-horizontal')
+
+        function getYOnThePathByX(path, x) {
+          var bbox = path.getBBox()
+          
+          // check if out of the path
+          if (x < bbox.x || x > bbox.width + bbox.x) {
+            return null
+          }
+          
+          var length = path.getTotalLength()
+          var dx = 2
+
+          var left = 0
+          var right = length
+          while(true) {
+            var xx = (left + right) / 2
+            var p = path.getPointAtLength(xx)
+            if (Math.abs(p.x - x) < dx) {
+              return p.y
+            }
+            if (x > p.x) {
+              left = xx
+            } else {
+              right = xx
+            }
+          }
+        }
+
+        function getYOnThePathByXWithRespectOfScaleAndOffset(pathEl, screenX, maxScreenY, scaleCoef, offsetX) {
+          var pathX = (screenX + offsetX) / scaleCoef
+          var pathY = getYOnThePathByX(pathEl, pathX)
+          if (pathY === null) {
+            return null
+          }
+          var screenY = maxScreenY - (maxScreenY - pathY) * scaleCoef
+          return screenY
+        }
+
+        // point on a path
+        var buyPath = chart.select('.buy-path').node()
+        var buyY = getYOnThePathByXWithRespectOfScaleAndOffset(buyPath, x, yScale(0), globalTransform.k, -globalTransform.x)
+        
+        var sellPath = chart.select('.sell-path').node()
+        var sellY = getYOnThePathByXWithRespectOfScaleAndOffset(sellPath, x, yScale(0), globalTransform.k, -globalTransform.x)
+
+        var y = buyY || sellY
+        if (y) {
+          circle
+            .style('display', 'block')
+            .attr('cx', x)
+            .attr('cy', y)
+
+          horizontalLine
+            .style('display', 'block')
+            .attr('y1', y)
+            .attr('y2', y)
+
+          d3.select('#tip')
+            .style('display', 'block')
+            .style('top', y - 10)
+            .style('left', x - 16)
+            .html('XXX')
+        } else {
+          circle
+            .style('display', 'none')
+          horizontalLine
+            .style('display', 'none')
+          d3.select('#tip')
+            .style('display', 'none')
+        }
+
+        verticalLine.attr('x1', x).attr('x2', x)
+      }
+
+      // UI
       updateChart();
-      // setInterval(update, 1000)
+      updateData();
+
+      var interval
+      function toggleUpdate() {
+        if (interval) {
+          clearInterval(interval)
+          interval = undefined
+        } else {
+          interval = setInterval(updateData, 2000)
+        }
+      }
+
+      window.addEventListener('resize', () => {
+        updateChart()
+        updateData()
+      })
     </script>
   </body>
 </html>
