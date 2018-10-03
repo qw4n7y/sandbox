@@ -19,3 +19,6 @@ find '/var/lib/docker/volumes/' -mindepth 1 -maxdepth 1 -type d | grep -vFf <(
 
 # docker 1.9 has new volume management system, so it’s way easier with this version:
 docker volume ls -qf dangling=true | xargs -r docker volume rm
+
+# Good too
+docker system prune -a -f
